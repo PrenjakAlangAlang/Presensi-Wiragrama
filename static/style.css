@@ -129,6 +129,11 @@ html[data-theme='light'] .moon-icon {
     align-items: center;
 }
 
+.navbar-brand {
+    display: flex;
+    align-items: center;
+}
+
 .navbar-brand h1 {
     color: var(--background-color);
     font-size: 1.5rem;
@@ -160,6 +165,14 @@ html[data-theme='light'] .moon-icon {
 .nav-link.green-link:hover {
     color: #fff;
     text-decoration: underline;
+}
+
+/* Navbar logo styling */
+.navbar-logo {
+    height: 40px;
+    width: auto;
+    margin-right: 10px;
+    vertical-align: middle;
 }
 
 /* Card & Content Styles */
@@ -437,6 +450,23 @@ tr:hover {
         top: 0;
     }
 }
+
+/* Make logo responsive on mobile */
+@media (max-width: 768px) {
+    .navbar-logo {
+        height: 30px;
+    }
+    
+    .navbar-brand {
+        display: flex;
+        align-items: center;
+    }
+    
+    .navbar-brand h1 {
+        font-size: 1.2rem;
+    }
+}
+
 .flash-messages {
     width: 100%;
     padding: 0.75rem 0;
