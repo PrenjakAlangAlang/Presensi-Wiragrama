@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Anggota{% endblock %}
+
+{% block content %}
+    <div class="content-card">
+        <h2 style="color: var(--primary-color); margin-bottom: 1.5rem; text-align: center;">Dashboard Anggota</h2>
+        
+        <div class="presensi-actions" style="display: flex; justify-content: center; gap: 1rem; margin-bottom: 2rem;">
+            {% if not sudah_masuk %}
+                <form method="POST" action="{{ url_for('presensi') }}">
+                    <input type="hidden" name="status" value="masuk">
+                    <button type="submit" class="btn btn-primary">Presensi Masuk</button>
+                </form>
+            {% else %}
+                <button class="btn" style="background-color: var(--gray-color); cursor: not-allowed;" disabled>Sudah Presensi Masuk</button>
+            {% endif %}
+            
+            {% if sudah_masuk and not sudah_pulang %}
+                <form method="POST" action="{{ url_for('presensi') }}">
+                    <input type="hidden" name="status" value="pulang">
+                    <button type="submit" class="btn btn-secondary">Presensi Pulang</button>
+                </form>
+            {% elif sudah_pulang %}
+                <button class="btn" style="background-color: var(--gray-color); cursor: not-allowed;" disabled>Sudah Presensi Pulang</button>
+            {% endif %}
+        </div>
+        
+        <section class="riwayat-presensi">
+            <h3 style="color: var(--primary-color); margin-bottom: 1rem;">Riwayat Presensi Terakhir</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Waktu</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for presensi in riwayat_presensi %}
+                            <tr>
+                                <td>{{ presensi.waktu_presensi }}</td>
+                                <td>{{ presensi.status }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+{% endblock %}

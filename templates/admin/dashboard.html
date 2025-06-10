@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block breadcrumbs %}
+    <a href="{{ url_for('home') }}">Home</a>
+    <span class="separator">/</span>
+    <span class="current">Admin Dashboard</span>
+{% endblock %}
+
+{% block content %}
+    <div class="content-card">
+        <h2>Dashboard Admin</h2>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <h3>Total Anggota</h3>
+                <p>{{ total_anggota }}</p>
+            </div>
+            <div class="stat-card">
+                <h3>Presensi Hari Ini</h3>
+                <p>{{ total_presensi }}</p>
+            </div>
+        </div>
+        
+        <section class="recent-activity">
+            <h3>Presensi Terbaru</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nama</th>
+                            <th>Waktu</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for presensi in presensi_terbaru %}
+                            <tr>
+                                <td>{{ presensi.nama_lengkap }}</td>
+                                <td>{{ presensi.waktu_presensi }}</td>
+                                <td>{{ presensi.status }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        
+        <nav class="admin-nav">
+            <a href="{{ url_for('manage_users') }}" class="btn">Kelola User</a>
+        </nav>
+    </div>
+{% endblock %}

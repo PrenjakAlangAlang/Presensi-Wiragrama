@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Edit User{% endblock %}
+
+{% block breadcrumbs %}
+    <a href="{{ url_for('home') }}">Home</a>
+    <span class="separator">/</span>
+    <a href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a>
+    <span class="separator">/</span>
+    <a href="{{ url_for('manage_users') }}">Kelola User</a>
+    <span class="separator">/</span>
+    <span class="current">Edit User</span>
+{% endblock %}
+
+{% block content %}
+    <div class="content-card">
+        <h2 style="color: var(--primary-color); margin-bottom: 1.5rem; text-align: center;">Edit User</h2>
+        
+        <form method="POST" style="max-width: 600px; margin: 0 auto;">
+            <div class="form-group">
+                <label for="nama_lengkap">Nama Lengkap</label>
+                <input type="text" id="nama_lengkap" name="nama_lengkap" value="{{ user.nama_lengkap }}" required>
+            </div>
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" value="{{ user.username }}" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password (Kosongkan jika tidak ingin mengubah)</label>
+                <input type="password" id="password" name="password">
+            </div>
+            <div class="form-group">
+                <label for="role">Role</label>
+                <select id="role" name="role" required>
+                    <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
+                    <option value="anggota" {% if user.role == 'anggota' %}selected{% endif %}>Anggota</option>
+                </select>
+            </div>
+            <div style="text-align: center;">
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Simpan Perubahan</button>
+                <a href="{{ url_for('manage_users') }}" class="btn btn-secondary" style="width: 100%; margin-top: 10px;">Batal</a>
+            </div>
+        </form>
+    </div>
+{% endblock %}
