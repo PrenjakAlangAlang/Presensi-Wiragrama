@@ -175,7 +175,70 @@ html[data-theme='light'] .moon-icon {
     vertical-align: middle;
 }
 
-/* Card & Content Styles */
+/* Navbar actions container */
+.navbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+/* Dropdown styles */
+.dropdown {
+    position: relative;
+}
+
+.dropdown-toggle {
+    display: flex;
+    align-items: center;
+    color: var(--background-color);
+    text-decoration: none;
+    padding: 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.dropdown-icon {
+    font-size: 0.7rem;
+    margin-left: 0.5rem;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background-color: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    min-width: 150px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+    transition: all 0.3s ease;
+    z-index: 1000;
+}
+
+.dropdown:hover .dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.dropdown-item {
+    display: block;
+    padding: 0.75rem 1rem;
+    color: var(--text-color);
+    text-decoration: none;
+    transition: background-color 0.3s;
+}
+
+.dropdown-item:hover {
+    background-color: var(--primary-color);
+    color: var(--background-color);
+}
+
+/* Main Content Styles */
 .content-card {
     background-color: var(--card-background);
     border-radius: 8px;
@@ -341,7 +404,7 @@ tr:hover {
     }
 }
 /* Responsive Navbar */
-@media (max-width: 768px) {
+@media (max-width: 600px) {
     .navbar-container {
         flex-direction: row;
         justify-content: space-between;
@@ -415,11 +478,11 @@ tr:hover {
     
     .navbar-nav {
         flex-direction: column;
-        align-items: flex-start;
+        
     }
     
     .nav-item {
-        margin: 0.75rem 0;
+        margin: 0.75rem 1;
         width: 100%;
     }
     
@@ -448,6 +511,35 @@ tr:hover {
     .navbar-toggle:checked ~ .navbar-toggle-label span::after {
         transform: rotate(-45deg);
         top: 0;
+    }
+}
+
+/* Medium screen navbar adjustments (between desktop and mobile) */
+@media (max-width: 900px) {
+    /* Reduce text size in navbar */
+    .navbar-brand h1 {
+        font-size: 1.3rem;
+    }
+    
+    .navbar-logo {
+        height: 35px;
+    }
+    
+    .nav-item {
+        margin-left: 1rem;
+    }
+    
+    .nav-link.green-link {
+        font-size: 0.9rem;
+    }
+    
+    .nav-text {
+        font-size: 0.9rem;
+    }
+    
+    /* Slightly reduce padding to keep things compact */
+    .navbar {
+        padding: 0.8rem 0;
     }
 }
 
@@ -566,7 +658,7 @@ tr:hover {
 }
 
 /* Form responsiveness */
-@media (max-width: 768px) {
+@media (max-width: 600px) {
     .form-group input,
     .form-group select {
         padding: 0.6rem;
@@ -583,12 +675,12 @@ tr:hover {
     }
     
     .content-card-2 {
-        width: 95%;
+        width: 100%;
     }
 }
 
 /* Table responsiveness enhancements */
-@media (max-width: 768px) {
+/*@media (max-width: 300px) {
     table {
         display: block;
         overflow-x: auto;
@@ -596,7 +688,7 @@ tr:hover {
     }
     
     th, td {
-        padding: 0.75rem 0.5rem;
+        padding: 0.75rem 1.25rem;
     }
     
     .table-responsive-stack {
@@ -625,7 +717,7 @@ tr:hover {
         font-weight: bold;
         margin-right: 0.5rem;
     }
-}
+}*/
 
 /* Flash messages responsive */
 @media (max-width: 576px) {
