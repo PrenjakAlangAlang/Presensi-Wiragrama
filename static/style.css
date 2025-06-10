@@ -330,12 +330,14 @@ tr:hover {
 /* Responsive Navbar */
 @media (max-width: 768px) {
     .navbar-container {
-        flex-direction: column;
-        align-items: flex-start;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        position: relative;
     }
     
     .navbar-brand {
-        margin-bottom: 0.5rem;
+        margin-bottom: 0;
     }
     
     .navbar-toggle {
@@ -343,24 +345,29 @@ tr:hover {
     }
     
     .navbar-toggle-label {
-        display: block;
-        position: absolute;
-        top: 1rem;
-        right: 1rem;
-        height: 30px;
-        width: 30px;
+        display: block; /* Show hamburger icon only on mobile */
         cursor: pointer;
+        height: 24px;
+        width: 30px;
+        position: relative;
+        z-index: 2;
     }
     
     .navbar-toggle-label span,
     .navbar-toggle-label span::before,
     .navbar-toggle-label span::after {
         display: block;
-        background: var(--text-light);
-        height: 2px;
+        background-color: var(--background-color);
+        height: 3px;
         width: 30px;
+        border-radius: 2px;
         position: relative;
-        transition: transform 0.3s;
+        transition: all 0.3s ease-in-out;
+    }
+    
+    .navbar-toggle-label span {
+        top: 50%;
+        transform: translateY(-50%);
     }
     
     .navbar-toggle-label span::before,
@@ -370,18 +377,27 @@ tr:hover {
     }
     
     .navbar-toggle-label span::before {
-        bottom: 10px;
+        bottom: 8px;
     }
     
     .navbar-toggle-label span::after {
-        top: 10px;
+        top: 8px;
     }
     
     .navbar-menu {
-        width: 100%;
-        max-height: 0;
-        overflow: hidden;
-        transition: max-height 0.3s ease;
+        position: absolute;
+        top: 100%;
+        right: 0;
+        background-color: var(--primary-color);
+        width: 80%;
+        max-width: 300px;
+        padding: 1rem;
+        border-radius: 0 0 8px 8px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        transform: translateY(-200%);
+        opacity: 0;
+        transition: transform 0.3s ease, opacity 0.3s ease;
+        z-index: 100;
     }
     
     .navbar-nav {
@@ -390,25 +406,34 @@ tr:hover {
     }
     
     .nav-item {
-        margin: 0.5rem 0;
+        margin: 0.75rem 0;
         width: 100%;
     }
     
-    .navbar-toggle:checked ~ .navbar-menu {
-        max-height: 300px;
+    .nav-text {
+        color: var(--background-color);
+        padding: 0.5rem 0;
+        display: block;
+        font-weight: bold;
     }
     
+    .navbar-toggle:checked ~ .navbar-menu {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    
+    /* Hamburger animation */
     .navbar-toggle:checked ~ .navbar-toggle-label span {
-        transform: rotate(45deg);
+        background-color: transparent;
     }
     
     .navbar-toggle:checked ~ .navbar-toggle-label span::before {
-        transform: rotate(90deg);
+        transform: rotate(45deg);
         bottom: 0;
     }
     
     .navbar-toggle:checked ~ .navbar-toggle-label span::after {
-        transform: rotate(90deg);
+        transform: rotate(-45deg);
         top: 0;
     }
 }
@@ -484,4 +509,180 @@ tr:hover {
     opacity: 0.7;
 }
 
-/* Existing CSS remains below */
+/* Additional Responsive Styles */
+
+/* Base responsive adjustments */
+@media (max-width: 576px) {
+    body {
+        font-size: 14px;
+    }
+    
+    .container {
+        width: 95%;
+        padding: 0 10px;
+    }
+    
+    h1 {
+        font-size: 1.5rem;
+    }
+    
+    h2 {
+        font-size: 1.3rem;
+    }
+    
+    h3 {
+        font-size: 1.1rem;
+    }
+}
+
+/* Form responsiveness */
+@media (max-width: 768px) {
+    .form-group input,
+    .form-group select {
+        padding: 0.6rem;
+    }
+    
+    .btn {
+        padding: 0.6rem 1.2rem;
+    }
+    
+    .content-card,
+    .content-card-2 {
+        padding: 1.5rem;
+        margin: 1rem 0;
+    }
+    
+    .content-card-2 {
+        width: 95%;
+    }
+}
+
+/* Table responsiveness enhancements */
+@media (max-width: 768px) {
+    table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    
+    th, td {
+        padding: 0.75rem 0.5rem;
+    }
+    
+    .table-responsive-stack {
+        display: block;
+    }
+    
+    .table-responsive-stack thead {
+        display: none;
+    }
+    
+    .table-responsive-stack tbody tr {
+        display: block;
+        border-bottom: 2px solid var(--border-color);
+        margin-bottom: 1rem;
+    }
+    
+    .table-responsive-stack td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .table-responsive-stack td:before {
+        content: attr(data-label);
+        font-weight: bold;
+        margin-right: 0.5rem;
+    }
+}
+
+/* Flash messages responsive */
+@media (max-width: 576px) {
+    .flash-messages {
+        padding: 0.5rem 0;
+    }
+    
+    .alert {
+        padding: 0.5rem;
+        font-size: 0.9rem;
+        width: 95%;
+    }
+}
+
+/* Breadcrumbs responsive */
+@media (max-width: 576px) {
+    .breadcrumbs {
+        padding: 0.4rem 0;
+        font-size: 0.8rem;
+    }
+}
+
+/* Card content spacing on mobile */
+@media (max-width: 576px) {
+    .stats {
+        gap: 1rem;
+    }
+    
+    .stat-card {
+        padding: 1rem;
+    }
+    
+    .stat-card p {
+        font-size: 1.5rem;
+    }
+    
+    .presensi-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .presensi-actions form,
+    .presensi-actions button {
+        width: 100%;
+    }
+}
+
+/* Admin action buttons responsive */
+@media (max-width: 576px) {
+    .admin-nav {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .admin-nav a {
+        width: 100%;
+    }
+    
+    td .btn {
+        padding: 0.4rem;
+        font-size: 0.8rem;
+        margin-bottom: 0.25rem;
+        display: block;
+        width: 100%;
+    }
+}
+
+/* In the base styles (non-responsive) */
+.navbar-toggle {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+.navbar-toggle-label {
+    display: none; /* Hide toggle label (hamburger icon) on larger screens */
+}
+
+/* Then in your responsive media query */
+@media (max-width: 768px) {
+    /* ...existing code... */
+    
+    .navbar-toggle-label {
+        display: block; /* Show hamburger icon only on mobile */
+    }
+    
+    /* ...rest of your responsive navbar code... */
+}

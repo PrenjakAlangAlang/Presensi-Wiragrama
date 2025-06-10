@@ -13,6 +13,12 @@
                 <h1>Presensi Online Wiragrama</h1>
             </div>
             
+            <!-- Hamburger menu for mobile -->
+            <input type="checkbox" id="navbar-toggle" class="navbar-toggle">
+            <label for="navbar-toggle" class="navbar-toggle-label">
+                <span></span>
+            </label>
+            
             <nav class="navbar-menu">
                 <ul class="navbar-nav">
                     <li class="nav-item">
@@ -33,6 +39,14 @@
         </div>
     </header>
 
+    <div class="breadcrumbs">
+        <div class="container">
+            {% block breadcrumbs %}
+                <a href="{{ url_for('home') }}">Home</a>
+            {% endblock %}
+        </div>
+    </div>
+
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             <div class="flash-messages">
@@ -42,14 +56,6 @@
             </div>
         {% endif %}
     {% endwith %}
-
-    <div class="breadcrumbs">
-        <div class="container">
-            {% block breadcrumbs %}
-                <a href="{{ url_for('home') }}">Home</a>
-            {% endblock %}
-        </div>
-    </div>
 
     <main class="container">
         {% block content %}{% endblock %}
@@ -72,6 +78,32 @@
                 document.documentElement.setAttribute('data-theme', newTheme);
                 localStorage.setItem('theme', newTheme);
             });
+
+            // Make tables responsive on small screens
+            function makeTablesResponsive() {
+                const tables = document.querySelectorAll('.table-responsive-stack');
+                tables.forEach(function(table) {
+                    const thElements = table.querySelectorAll('thead th');
+                    const tdElements = table.querySelectorAll('tbody td');
+                    
+                    if (thElements.length > 0) {
+                        const headerTexts = Array.from(thElements).map(th => th.textContent.trim());
+                        
+                        tdElements.forEach(function(td, index) {
+                            const headerIndex = index % headerTexts.length;
+                            td.setAttribute('data-label', headerTexts[headerIndex]);
+                        });
+                    }
+                });
+            }
+            
+            // Add responsive table class to specific tables
+            const detailTables = document.querySelectorAll('.user-list table, .sesi-info table, .riwayat-presensi table');
+            detailTables.forEach(table => {
+                table.classList.add('table-responsive-stack');
+            });
+            
+            makeTablesResponsive();
         });
     </script>
 </body>

@@ -2,29 +2,49 @@
 
 {% block title %}Dashboard Anggota{% endblock %}
 
+{% block breadcrumbs %}
+    <a href="{{ url_for('home') }}">Home</a>
+    <span class="separator">/</span>
+    <span class="current">Dashboard Anggota</span>
+{% endblock %}
+
 {% block content %}
     <div class="content-card">
         <h2 style="color: var(--primary-color); margin-bottom: 1.5rem; text-align: center;">Dashboard Anggota</h2>
         
-        <div class="presensi-actions" style="display: flex; justify-content: center; gap: 1rem; margin-bottom: 2rem;">
-            {% if not sudah_masuk %}
-                <form method="POST" action="{{ url_for('presensi') }}">
-                    <input type="hidden" name="status" value="masuk">
-                    <button type="submit" class="btn btn-primary">Presensi Masuk</button>
-                </form>
-            {% else %}
-                <button class="btn" style="background-color: var(--gray-color); cursor: not-allowed;" disabled>Sudah Presensi Masuk</button>
-            {% endif %}
+        {% if active_session %}
+            <div class="active-session" style="background-color: rgba(46, 204, 113, 0.1); border: 1px solid var(--primary-color); border-radius: 8px; padding: 1rem; margin-bottom: 2rem;">
+                <h3 style="color: var(--primary-color); margin-bottom: 0.5rem;">Sesi Presensi Aktif</h3>
+                <p><strong>{{ active_session.judul }}</strong></p>
+                <p>Tanggal: {{ active_session.tanggal }}</p>
+                <p style="font-size: 0.9rem; margin-top: 0.5rem;">Dibuat pada: {{ active_session.created_at }}</p>
+            </div>
             
-            {% if sudah_masuk and not sudah_pulang %}
-                <form method="POST" action="{{ url_for('presensi') }}">
-                    <input type="hidden" name="status" value="pulang">
-                    <button type="submit" class="btn btn-secondary">Presensi Pulang</button>
-                </form>
-            {% elif sudah_pulang %}
-                <button class="btn" style="background-color: var(--gray-color); cursor: not-allowed;" disabled>Sudah Presensi Pulang</button>
-            {% endif %}
-        </div>
+            <div class="presensi-actions" style="display: flex; justify-content: center; gap: 1rem; margin-bottom: 2rem;">
+                {% if not sudah_masuk %}
+                    <form method="POST" action="{{ url_for('presensi') }}">
+                        <input type="hidden" name="status" value="masuk">
+                        <button type="submit" class="btn btn-primary">Presensi Masuk</button>
+                    </form>
+                {% else %}
+                    <button class="btn" style="background-color: var(--gray-color); cursor: not-allowed;" disabled>Sudah Presensi Masuk</button>
+                {% endif %}
+                
+                {% if sudah_masuk and not sudah_pulang %}
+                    <form method="POST" action="{{ url_for('presensi') }}">
+                        <input type="hidden" name="status" value="pulang">
+                        <button type="submit" class="btn btn-secondary">Presensi Pulang</button>
+                    </form>
+                {% elif sudah_pulang %}
+                    <button class="btn" style="background-color: var(--gray-color); cursor: not-allowed;" disabled>Sudah Presensi Pulang</button>
+                {% endif %}
+            </div>
+        {% else %}
+            <div class="no-session" style="background-color: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem; text-align: center;">
+                <h3 style="color: var(--text-color); margin-bottom: 0.5rem;">Tidak Ada Sesi Presensi Aktif</h3>
+                <p>Admin belum membuat sesi presensi untuk hari ini.</p>
+            </div>
+        {% endif %}
         
         <section class="riwayat-presensi">
             <h3 style="color: var(--primary-color); margin-bottom: 1rem;">Riwayat Presensi Terakhir</h3>
@@ -34,6 +54,7 @@
                         <tr>
                             <th>Waktu</th>
                             <th>Status</th>
+                            <th>Sesi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -41,6 +62,7 @@
                             <tr>
                                 <td>{{ presensi.waktu_presensi }}</td>
                                 <td>{{ presensi.status }}</td>
+                                <td>{{ presensi.sesi_judul or '-' }}</td>
                             </tr>
                         {% endfor %}
                     </tbody>

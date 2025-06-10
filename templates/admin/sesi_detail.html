@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Detail Sesi Presensi{% endblock %}
+
+{% block breadcrumbs %}
+    <a href="{{ url_for('home') }}">Home</a>
+    <span class="separator">/</span>
+    <a href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a>
+    <span class="separator">/</span>
+    <a href="{{ url_for('manage_sesi') }}">Kelola Sesi Presensi</a>
+    <span class="separator">/</span>
+    <span class="current">Detail Sesi</span>
+{% endblock %}
+
+{% block content %}
+    <div class="content-card">
+        <h2 style="color: var(--primary-color); margin-bottom: 1.5rem; text-align: center;">Detail Sesi Presensi</h2>
+        
+        <div class="sesi-info" style="margin-bottom: 2rem; background-color: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px;">
+            <h3>{{ sesi.judul }}</h3>
+            <p><strong>Tanggal:</strong> {{ sesi.tanggal }}</p>
+            <p><strong>Status:</strong> 
+                {% if sesi.status == 'active' %}
+                    <span style="color: var(--primary-color); font-weight: bold;">Aktif</span>
+                {% else %}
+                    <span style="color: var(--gray-color);">Ditutup</span>
+                {% endif %}
+            </p>
+            <p><strong>Dibuat pada:</strong> {{ sesi.created_at }}</p>
+            
+            {% if sesi.status == 'active' %}
+                <form method="POST" action="{{ url_for('close_sesi', sesi_id=sesi.id) }}" style="margin-top: 1rem;">
+                    <button type="submit" class="btn" style="background-color: var(--danger-color);" 
+                            onclick="return confirm('Yakin ingin menutup sesi ini?');">Tutup Sesi</button>
+                </form>
+            {% endif %}
+        </div>
+        
+        <h3 style="color: var(--primary-color); margin-bottom: 1rem;">Daftar Presensi</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nama</th>
+                        <th>Status</th>
+                        <th>Waktu</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for presensi in presensi_list %}
+                        <tr>
+                            <td>{{ presensi.nama_lengkap }}</td>
+                            <td>{{ presensi.status }}</td>
+                            <td>{{ presensi.waktu_presensi }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div style="text-align: center; margin-top: 2rem;">
+            <a href="{{ url_for('manage_sesi') }}" class="btn btn-secondary">Kembali</a>
+        </div>
+    </div>
+{% endblock %}

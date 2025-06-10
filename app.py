@@ -269,6 +269,123 @@ def delete_user(user_id):
         
     return redirect(url_for('manage_users'))
 
+# Add these routes after your existing admin routes
+
+@app.route('/admin/sesi', methods=['GET'])
+@login_required
+def manage_sesi():
+    if current_user.role != 'admin':
+        flash('Anda tidak memiliki akses', 'danger')
+        return redirect(url_for('home'))
+    
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Get all sessions
+    cursor.execute("""
+        SELECT s.*, u.nama_lengkap as admin_name,
+        (SELECT COUNT(*) FROM presensi WHERE sesi_id = s.id) as total_presensi
+        FROM presensi_sesi s
+        JOIN users u ON s.created_by = u.id
+        ORDER BY s.tanggal DESC, s.created_at DESC
+    """)
+    sesi_list = cursor.fetchall()
+    
+    cursor.close()
+    conn.close()
+    
+    return render_template('admin/manage_sesi.html', sesi_list=sesi_list)
+
+@app.route('/admin/sesi/new', methods=['GET', 'POST'])
+@login_required
+def create_sesi():
+    if current_user.role != 'admin':
+        flash('Anda tidak memiliki akses', 'danger')
+        return redirect(url_for('home'))
+    
+    if request.method == 'POST':
+        judul = request.form.get('judul')
+        tanggal = request.form.get('tanggal')
+        
+        conn = get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute("""
+                INSERT INTO presensi_sesi (judul, tanggal, created_by)
+                VALUES (%s, %s, %s)
+            """, (judul, tanggal, current_user.id))
+            
+            conn.commit()
+            flash('Sesi presensi berhasil dibuat', 'success')
+            return redirect(url_for('manage_sesi'))
+            
+        except Exception as e:
+            conn.rollback()
+            flash(f'Error: {str(e)}', 'danger')
+            
+        finally:
+            cursor.close()
+            conn.close()
+    
+    return render_template('admin/create_sesi.html')
+
+@app.route('/admin/sesi/<int:sesi_id>/detail', methods=['GET'])
+@login_required
+def sesi_detail(sesi_id):
+    if current_user.role != 'admin':
+        flash('Anda tidak memiliki akses', 'danger')
+        return redirect(url_for('home'))
+    
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Get session info
+    cursor.execute("SELECT * FROM presensi_sesi WHERE id = %s", (sesi_id,))
+    sesi = cursor.fetchone()
+    
+    if not sesi:
+        flash('Sesi tidak ditemukan', 'danger')
+        return redirect(url_for('manage_sesi'))
+    
+    # Get attendance for this session
+    cursor.execute("""
+        SELECT p.*, u.nama_lengkap
+        FROM presensi p
+        JOIN users u ON p.user_id = u.id
+        WHERE p.sesi_id = %s
+        ORDER BY p.waktu_presensi DESC
+    """, (sesi_id,))
+    presensi_list = cursor.fetchall()
+    
+    cursor.close()
+    conn.close()
+    
+    return render_template('admin/sesi_detail.html', sesi=sesi, presensi_list=presensi_list)
+
+@app.route('/admin/sesi/<int:sesi_id>/close', methods=['POST'])
+@login_required
+def close_sesi(sesi_id):
+    if current_user.role != 'admin':
+        flash('Anda tidak memiliki akses', 'danger')
+        return redirect(url_for('home'))
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("UPDATE presensi_sesi SET status = 'closed' WHERE id = %s", (sesi_id,))
+        conn.commit()
+        flash('Sesi presensi berhasil ditutup', 'success')
+    except Exception as e:
+        conn.rollback()
+        flash(f'Error: {str(e)}', 'danger')
+    finally:
+        cursor.close()
+        conn.close()
+        
+    return redirect(url_for('manage_sesi'))
+
 # Anggota Routes
 @app.route('/anggota/dashboard')
 @login_required
@@ -279,28 +396,47 @@ def anggota_dashboard():
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     
+    # Get active session info for today
     cursor.execute("""
-        SELECT COUNT(*) as total FROM presensi 
-        WHERE user_id = %s 
-        AND DATE(waktu_presensi) = CURDATE() 
-        AND status = 'masuk'
-    """, (current_user.id,))
-    sudah_masuk = cursor.fetchone()['total'] > 0
+        SELECT id, judul, tanggal, created_at 
+        FROM presensi_sesi 
+        WHERE status = 'active' AND tanggal = CURDATE()
+        ORDER BY created_at DESC LIMIT 1
+    """)
+    active_session = cursor.fetchone()
     
-    cursor.execute("""
-        SELECT COUNT(*) as total FROM presensi 
-        WHERE user_id = %s 
-        AND DATE(waktu_presensi) = CURDATE() 
-        AND status = 'pulang'
-    """, (current_user.id,))
-    sudah_pulang = cursor.fetchone()['total'] > 0
+    # Initialize variables
+    sudah_masuk = False
+    sudah_pulang = False
     
+    # If there's an active session, check if user already attended
+    if active_session:
+        # Check masuk status
+        cursor.execute("""
+            SELECT COUNT(*) as total FROM presensi 
+            WHERE user_id = %s 
+            AND sesi_id = %s 
+            AND status = 'masuk'
+        """, (current_user.id, active_session['id']))
+        sudah_masuk = cursor.fetchone()['total'] > 0
+        
+        # Check pulang status
+        cursor.execute("""
+            SELECT COUNT(*) as total FROM presensi 
+            WHERE user_id = %s 
+            AND sesi_id = %s 
+            AND status = 'pulang'
+        """, (current_user.id, active_session['id']))
+        sudah_pulang = cursor.fetchone()['total'] > 0
+    
+    # Get attendance history with session titles
     cursor.execute("""
-        SELECT waktu_presensi, status 
-        FROM presensi 
-        WHERE user_id = %s 
-        ORDER BY waktu_presensi DESC 
-        LIMIT 5
+        SELECT p.waktu_presensi, p.status, s.judul as sesi_judul
+        FROM presensi p
+        LEFT JOIN presensi_sesi s ON p.sesi_id = s.id
+        WHERE p.user_id = %s 
+        ORDER BY p.waktu_presensi DESC 
+        LIMIT 10
     """, (current_user.id,))
     riwayat_presensi = cursor.fetchall()
     
@@ -308,6 +444,7 @@ def anggota_dashboard():
     conn.close()
     
     return render_template('anggota/dashboard.html', 
+                         active_session=active_session,
                          sudah_masuk=sudah_masuk,
                          sudah_pulang=sudah_pulang,
                          riwayat_presensi=riwayat_presensi)
@@ -438,26 +575,38 @@ def presensi():
         return redirect(url_for('anggota_dashboard'))
     
     conn = get_connection()
-    cursor = conn.cursor()
+    cursor = conn.cursor(dictionary=True)
     
     try:
-        # Check if already done presensi with same status today
+        # Check for active session
         cursor.execute("""
-            SELECT COUNT(*) FROM presensi 
-            WHERE user_id = %s 
-            AND DATE(waktu_presensi) = CURDATE() 
-            AND status = %s
-        """, (current_user.id, status))
+            SELECT id FROM presensi_sesi 
+            WHERE status = 'active' AND tanggal = CURDATE()
+            ORDER BY created_at DESC LIMIT 1
+        """)
+        active_session = cursor.fetchone()
         
-        if cursor.fetchone()[0] > 0:
-            flash(f'Anda sudah presensi {status} hari ini', 'warning')
+        if not active_session:
+            flash('Tidak ada sesi presensi aktif untuk hari ini', 'warning')
+            return redirect(url_for('anggota_dashboard'))
+            
+        sesi_id = active_session['id']
+        
+        # Check if already done presensi with same status for this session
+        cursor.execute("""
+            SELECT COUNT(*) as total FROM presensi 
+            WHERE user_id = %s AND sesi_id = %s AND status = %s
+        """, (current_user.id, sesi_id, status))
+        
+        if cursor.fetchone()['total'] > 0:
+            flash(f'Anda sudah presensi {status} untuk sesi ini', 'warning')
             return redirect(url_for('anggota_dashboard'))
         
-        # Add new presensi
+        # Add new presensi with session ID
         cursor.execute("""
-            INSERT INTO presensi (user_id, status)
-            VALUES (%s, %s)
-        """, (current_user.id, status))
+            INSERT INTO presensi (user_id, status, sesi_id)
+            VALUES (%s, %s, %s)
+        """, (current_user.id, status, sesi_id))
         conn.commit()
         
         flash(f'Presensi {status} berhasil dicatat', 'success')

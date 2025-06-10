@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Kelola Sesi Presensi{% endblock %}
+
+{% block breadcrumbs %}
+    <a href="{{ url_for('home') }}">Home</a>
+    <span class="separator">/</span>
+    <a href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a>
+    <span class="separator">/</span>
+    <span class="current">Kelola Sesi Presensi</span>
+{% endblock %}
+
+{% block content %}
+    <div class="content-card">
+        <h2 style="color: var(--primary-color); margin-bottom: 1.5rem; text-align: center;">Kelola Sesi Presensi</h2>
+        
+        <div style="text-align: right; margin-bottom: 1rem;">
+            <a href="{{ url_for('create_sesi') }}" class="btn btn-primary">Buat Sesi Baru</a>
+        </div>
+        
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Judul</th>
+                        <th>Tanggal</th>
+                        <th>Status</th>
+                        <th>Dibuat Oleh</th>
+                        <th>Total Presensi</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sesi in sesi_list %}
+                        <tr>
+                            <td>{{ sesi.judul }}</td>
+                            <td>{{ sesi.tanggal }}</td>
+                            <td>
+                                {% if sesi.status == 'active' %}
+                                    <span style="color: var(--primary-color); font-weight: bold;">Aktif</span>
+                                {% else %}
+                                    <span style="color: var(--gray-color);">Ditutup</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ sesi.admin_name }}</td>
+                            <td>{{ sesi.total_presensi }}</td>
+                            <td>
+                                <a href="{{ url_for('sesi_detail', sesi_id=sesi.id) }}" class="btn btn-secondary" style="padding: 0.3rem 0.5rem; font-size: 0.9rem;">Detail</a>
+                                {% if sesi.status == 'active' %}
+                                    <form method="POST" action="{{ url_for('close_sesi', sesi_id=sesi.id) }}" style="display: inline;">
+                                        <button type="submit" class="btn" style="background-color: var(--danger-color); padding: 0.3rem 0.5rem; font-size: 0.9rem;" 
+                                                onclick="return confirm('Yakin ingin menutup sesi ini?');">Tutup Sesi</button>
+                                    </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}

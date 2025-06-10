@@ -10,7 +10,7 @@
 
 {% block content %}
     <div class="content-card">
-        <h2>Dashboard Admin</h2>
+        <h2 style="color: var(--primary-color); margin-bottom: 1.5rem; text-align: center;">Dashboard Admin</h2>
         
         <div class="stats">
             <div class="stat-card">
@@ -24,7 +24,7 @@
         </div>
         
         <section class="recent-activity">
-            <h3>Presensi Terbaru</h3>
+            <h3 style="color: var(--primary-color); margin-bottom: 1rem;">Presensi Terbaru</h3>
             <div class="table-container">
                 <table>
                     <thead>
@@ -47,8 +47,9 @@
             </div>
         </section>
         
-        <nav class="admin-nav">
-            <a href="{{ url_for('manage_users') }}" class="btn">Kelola User</a>
+        <nav class="admin-nav" style="display: flex; justify-content: center; gap: 1rem; margin-top: 2rem;">
+            <a href="{{ url_for('manage_users') }}" class="btn btn-primary">Kelola User</a>
+            <a href="{{ url_for('manage_sesi') }}" class="btn btn-primary">Kelola Sesi Presensi</a>
         </nav>
     </div>
 {% endblock %}
