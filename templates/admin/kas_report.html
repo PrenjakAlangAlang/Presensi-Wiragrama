@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Laporan Kas{% endblock %}
+
+{% block breadcrumbs %}
+    <a href="{{ url_for('home') }}">Home</a>
+    <span class="separator">/</span>
+    <a href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a>
+    <span class="separator">/</span>
+    <span class="current">Laporan Kas</span>
+{% endblock %}
+
+{% block content %}
+    <div class="content-card">
+        <h2 style="color: var(--primary-color); margin-bottom: 1.5rem; text-align: center;">Laporan Kas</h2>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <h3>Total Kas Terkumpul</h3>
+                <p>Rp {{ total_kas_collected }}</p>
+            </div>
+        </div>
+        
+        <h3 style="color: var(--primary-color); margin: 2rem 0 1rem 0;">Kas Bulanan</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Bulan</th>
+                        <th>Jumlah Pembayaran</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in monthly_kas %}
+                        <tr>
+                            <td>{{ item.month }}</td>
+                            <td>{{ item.count }}</td>
+                            <td>Rp {{ item.count * 5000 }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <h3 style="color: var(--primary-color); margin: 2rem 0 1rem 0;">Anggota dengan Tunggakan Terbanyak</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nama</th>
+                        <th>Jumlah Tunggakan</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in top_unpaid_users %}
+                        <tr>
+                            <td>{{ user.nama_lengkap }}</td>
+                            <td>{{ user.unpaid_count }}</td>
+                            <td>Rp {{ user.unpaid_count * 5000 }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div style="text-align: center; margin-top: 2rem;">
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">Kembali ke Dashboard</a>
+        </div>
+    </div>
+{% endblock %}

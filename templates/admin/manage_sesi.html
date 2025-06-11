@@ -27,6 +27,7 @@
                         <th>Status</th>
                         <th>Dibuat Oleh</th>
                         <th>Total Presensi</th>
+                        <th>Total Kas</th>
                         <th>Aksi</th>
                     </tr>
                 </thead>
@@ -44,6 +45,7 @@
                             </td>
                             <td>{{ sesi.admin_name }}</td>
                             <td>{{ sesi.total_presensi }}</td>
+                            <td>Rp {{ sesi.total_kas_paid * 5000 }}</td>
                             <td>
                                 <a href="{{ url_for('sesi_detail', sesi_id=sesi.id) }}" class="btn btn-secondary" style="padding: 0.3rem 0.5rem; font-size: 0.9rem;">Detail</a>
                                 {% if sesi.status == 'active' %}

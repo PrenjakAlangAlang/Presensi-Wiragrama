@@ -36,7 +36,7 @@
             {% endif %}
         </div>
         
-        <h3 style="color: var(--primary-color); margin-bottom: 1rem;">Daftar Presensi</h3>
+        <h3 style="color: var(--primary-color); margin-bottom: 1rem;">Daftar Presensi & Kas</h3>
         <div class="table-container">
             <table>
                 <thead>
@@ -44,6 +44,7 @@
                         <th>Nama</th>
                         <th>Status</th>
                         <th>Waktu</th>
+                        <th>Kas (Rp 5.000)</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -52,6 +53,26 @@
                             <td>{{ presensi.nama_lengkap }}</td>
                             <td>{{ presensi.status }}</td>
                             <td>{{ presensi.waktu_presensi }}</td>
+                            <td>
+                                {% if presensi.status == 'masuk' %}
+                                    <div class="kas-toggle">
+                                        <input type="checkbox" id="kas-{{ presensi.id }}" class="kas-checkbox" 
+                                            data-presensi-id="{{ presensi.id }}" 
+                                            {% if presensi.kas_paid %}checked{% endif %}>
+                                        <label for="kas-{{ presensi.id }}">
+                                            {% if presensi.kas_paid %}
+                                                <span class="paid">Sudah Bayar</span>
+                                            {% else %}
+                                                <span class="unpaid">Belum Bayar</span>
+                                            {% endif %}
+                                        </label>
+                                    </div>
+                                {% else %}
+                                    <span class="info-text" style="color: var(--gray-color); font-style: italic; font-size: 0.9rem;">
+                                        Kas hanya pada presensi masuk
+                                    </span>
+                                {% endif %}
+                            </td>
                         </tr>
                     {% endfor %}
                 </tbody>
@@ -62,4 +83,88 @@
             <a href="{{ url_for('manage_sesi') }}" class="btn btn-secondary">Kembali</a>
         </div>
     </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const kasCheckboxes = document.querySelectorAll('.kas-checkbox');
+        
+        kasCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const presensiId = this.dataset.presensiId;
+                const kasPaid = this.checked;
+                
+                // Update label text immediately
+                const label = this.nextElementSibling;
+                if (kasPaid) {
+                    label.innerHTML = '<span class="paid">Sudah Bayar</span>';
+                } else {
+                    label.innerHTML = '<span class="unpaid">Belum Bayar</span>';
+                }
+                
+                // Send update to server
+                fetch('/api/kas/update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        presensi_id: presensiId,
+                        kas_paid: kasPaid
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Update was successful
+                    } else {
+                        // If there was an error, revert the checkbox
+                        this.checked = !kasPaid;
+                        if (!kasPaid) {
+                            label.innerHTML = '<span class="paid">Sudah Bayar</span>';
+                        } else {
+                            label.innerHTML = '<span class="unpaid">Belum Bayar</span>';
+                        }
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    // Revert the checkbox on error
+                    this.checked = !kasPaid;
+                    if (!kasPaid) {
+                        label.innerHTML = '<span class="paid">Sudah Bayar</span>';
+                    } else {
+                        label.innerHTML = '<span class="unpaid">Belum Bayar</span>';
+                    }
+                    alert('Terjadi kesalahan saat memperbarui status kas');
+                });
+            });
+        });
+    });
+    </script>
+
+    <style>
+    .kas-toggle {
+        display: flex;
+        align-items: center;
+    }
+    
+    .kas-checkbox {
+        margin-right: 8px;
+    }
+    
+    .paid {
+        color: var(--primary-color);
+        font-weight: bold;
+    }
+    
+    .unpaid {
+        color: var(--danger-color);
+    }
+    
+    .info-text {
+        display: block;
+        text-align: center;
+    }
+    </style>
 {% endblock %}

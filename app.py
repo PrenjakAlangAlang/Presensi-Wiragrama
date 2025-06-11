@@ -119,6 +119,10 @@ def admin_dashboard():
     cursor.execute("SELECT COUNT(*) as total FROM presensi WHERE DATE(waktu_presensi) = CURDATE()")
     total_presensi = cursor.fetchone()['total']
     
+    # Get total kas collected - from "masuk" presensi
+    cursor.execute("SELECT COUNT(*) as total FROM presensi WHERE kas_paid = TRUE AND status = 'masuk'")
+    total_kas = cursor.fetchone()['total'] * 5000  # Rp 5000 per entry
+    
     cursor.execute("""
         SELECT u.nama_lengkap, p.waktu_presensi, p.status 
         FROM presensi p
@@ -134,6 +138,7 @@ def admin_dashboard():
     return render_template('admin/dashboard.html', 
                          total_anggota=total_anggota,
                          total_presensi=total_presensi,
+                         total_kas=total_kas,
                          presensi_terbaru=presensi_terbaru)
 
 @app.route('/admin/users', methods=['GET', 'POST'])
@@ -281,10 +286,11 @@ def manage_sesi():
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     
-    # Get all sessions
+    # Get all sessions with kas data
     cursor.execute("""
         SELECT s.*, u.nama_lengkap as admin_name,
-        (SELECT COUNT(*) FROM presensi WHERE sesi_id = s.id) as total_presensi
+        (SELECT COUNT(*) FROM presensi WHERE sesi_id = s.id) as total_presensi,
+        (SELECT COUNT(*) FROM presensi WHERE sesi_id = s.id AND kas_paid = TRUE) as total_kas_paid
         FROM presensi_sesi s
         JOIN users u ON s.created_by = u.id
         ORDER BY s.tanggal DESC, s.created_at DESC
@@ -348,7 +354,7 @@ def sesi_detail(sesi_id):
         flash('Sesi tidak ditemukan', 'danger')
         return redirect(url_for('manage_sesi'))
     
-    # Get attendance for this session
+    # Get attendance for this session including kas_paid status
     cursor.execute("""
         SELECT p.*, u.nama_lengkap
         FROM presensi p
@@ -408,6 +414,7 @@ def anggota_dashboard():
     # Initialize variables
     sudah_masuk = False
     sudah_pulang = False
+    active_session_kas_status = None
     
     # If there's an active session, check if user already attended
     if active_session:
@@ -428,10 +435,20 @@ def anggota_dashboard():
             AND status = 'pulang'
         """, (current_user.id, active_session['id']))
         sudah_pulang = cursor.fetchone()['total'] > 0
+        
+        # Get kas status for active session
+        cursor.execute("""
+            SELECT kas_paid FROM presensi 
+            WHERE user_id = %s AND sesi_id = %s
+            LIMIT 1
+        """, (current_user.id, active_session['id']))
+        kas_result = cursor.fetchone()
+        if kas_result:
+            active_session_kas_status = kas_result
     
-    # Get attendance history with session titles
+    # Get attendance history with session titles and kas status
     cursor.execute("""
-        SELECT p.waktu_presensi, p.status, s.judul as sesi_judul
+        SELECT p.waktu_presensi, p.status, p.kas_paid, s.judul as sesi_judul
         FROM presensi p
         LEFT JOIN presensi_sesi s ON p.sesi_id = s.id
         WHERE p.user_id = %s 
@@ -440,6 +457,31 @@ def anggota_dashboard():
     """, (current_user.id,))
     riwayat_presensi = cursor.fetchall()
     
+    # Get total kas paid - only from "masuk" presensi
+    cursor.execute("""
+        SELECT COUNT(*) as total FROM presensi
+        WHERE user_id = %s AND kas_paid = TRUE AND status = 'masuk'
+    """, (current_user.id,))
+    total_kas_paid = cursor.fetchone()['total']
+
+    # Get total kas unpaid - only from "masuk" presensi
+    cursor.execute("""
+        SELECT COUNT(*) as total FROM presensi
+        WHERE user_id = %s AND kas_paid = FALSE AND status = 'masuk'
+    """, (current_user.id,))
+    total_kas_unpaid = cursor.fetchone()['total']
+
+    # Get sessions with unpaid kas - only from "masuk" presensi
+    cursor.execute("""
+        SELECT s.id, s.judul, s.tanggal
+        FROM presensi p
+        JOIN presensi_sesi s ON p.sesi_id = s.id
+        WHERE p.user_id = %s AND p.kas_paid = FALSE AND p.status = 'masuk'
+        GROUP BY s.id
+        ORDER BY s.tanggal DESC
+    """, (current_user.id,))
+    kas_unpaid_sessions = cursor.fetchall()
+    
     cursor.close()
     conn.close()
     
@@ -447,7 +489,11 @@ def anggota_dashboard():
                          active_session=active_session,
                          sudah_masuk=sudah_masuk,
                          sudah_pulang=sudah_pulang,
-                         riwayat_presensi=riwayat_presensi)
+                         active_session_kas_status=active_session_kas_status,
+                         riwayat_presensi=riwayat_presensi,
+                         total_kas_paid=total_kas_paid,
+                         total_kas_unpaid=total_kas_unpaid,
+                         kas_unpaid_sessions=kas_unpaid_sessions)
 
 # API Routes
 @app.route('/api/presensi', methods=['POST'])
@@ -618,6 +664,90 @@ def presensi():
         conn.close()
         
     return redirect(url_for('anggota_dashboard'))
+
+@app.route('/api/kas/update', methods=['POST'])
+@login_required
+def update_kas():
+    if current_user.role != 'admin':
+        return jsonify({"status": "error", "message": "Unauthorized"}), 403
+    
+    data = request.get_json()
+    presensi_id = data.get('presensi_id')
+    kas_paid = data.get('kas_paid', False)
+    
+    if not presensi_id:
+        return jsonify({"status": "error", "message": "presensi_id is required"}), 400
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            UPDATE presensi 
+            SET kas_paid = %s
+            WHERE id = %s
+        """, (kas_paid, presensi_id))
+        conn.commit()
+        
+        return jsonify({"status": "success", "message": "Kas status updated successfully"})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route('/admin/kas-report')
+@login_required
+def kas_report():
+    if current_user.role != 'admin':
+        flash('Anda tidak memiliki akses', 'danger')
+        return redirect(url_for('home'))
+    
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Get total kas collected - only from "masuk" presensi
+    cursor.execute("""
+        SELECT COUNT(*) as total 
+        FROM presensi 
+        WHERE kas_paid = TRUE AND status = 'masuk'
+    """)
+    total_kas_collected = cursor.fetchone()['total'] * 5000  # Rp 5000 per entry
+    
+    # Get kas by month - only from "masuk" presensi
+    cursor.execute("""
+        SELECT 
+            DATE_FORMAT(waktu_presensi, '%Y-%m') as month,
+            COUNT(*) as count
+        FROM presensi
+        WHERE kas_paid = TRUE AND status = 'masuk'
+        GROUP BY DATE_FORMAT(waktu_presensi, '%Y-%m')
+        ORDER BY month DESC
+    """)
+    monthly_kas = cursor.fetchall()
+    
+    # Get users with most unpaid kas - only from "masuk" presensi
+    cursor.execute("""
+        SELECT 
+            u.nama_lengkap,
+            COUNT(*) as unpaid_count
+        FROM presensi p
+        JOIN users u ON p.user_id = u.id
+        WHERE p.kas_paid = FALSE AND p.status = 'masuk'
+        GROUP BY p.user_id
+        ORDER BY unpaid_count DESC
+        LIMIT 5
+    """)
+    top_unpaid_users = cursor.fetchall()
+    
+    cursor.close()
+    conn.close()
+    
+    return render_template('admin/kas_report.html', 
+                         total_kas_collected=total_kas_collected,
+                         monthly_kas=monthly_kas,
+                         top_unpaid_users=top_unpaid_users)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
