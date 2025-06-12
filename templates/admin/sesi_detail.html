@@ -37,6 +37,29 @@
         </div>
         
         <h3 style="color: var(--primary-color); margin-bottom: 1rem;">Daftar Presensi & Kas</h3>
+
+        <div class="filter-controls" style="margin-bottom: 1rem; display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+            <label style="font-weight: bold;">Filter Status:</label>
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <label style="display: flex; align-items: center; cursor: pointer;">
+                    <input type="radio" name="status-filter" value="all" checked style="margin-right: 0.5rem;"> Semua
+                </label>
+                <label style="display: flex; align-items: center; cursor: pointer;">
+                    <input type="radio" name="status-filter" value="masuk" style="margin-right: 0.5rem;"> Masuk
+                </label>
+                <label style="display: flex; align-items: center; cursor: pointer;">
+                    <input type="radio" name="status-filter" value="pulang" style="margin-right: 0.5rem;"> Pulang
+                </label>
+                <label style="display: flex; align-items: center; cursor: pointer;">
+                    <input type="radio" name="status-filter" value="tidak hadir" style="margin-right: 0.5rem;"> Tidak Hadir
+                </label>
+            </div>
+        </div>
+
+        <div class="filter-stats" style="margin-bottom: 1rem; font-size: 0.9rem;">
+            <span>Menampilkan: <span id="displayed-count">{{ presensi_list|length }}</span> dari {{ presensi_list|length }} data</span>
+        </div>
+        
         <div class="table-container">
             <table>
                 <thead>
@@ -49,7 +72,7 @@
                 </thead>
                 <tbody>
                     {% for presensi in presensi_list %}
-                        <tr>
+                        <tr data-status="{{ presensi.status }}">
                             <td>{{ presensi.nama_lengkap }}</td>
                             <td>
                                 {% if presensi.status == 'tidak hadir' %}
@@ -146,6 +169,32 @@
                 });
             });
         });
+        
+        // Add filtering functionality
+        const filterRadios = document.querySelectorAll('input[name="status-filter"]');
+        const tableRows = document.querySelectorAll('table tbody tr');
+        const displayedCount = document.getElementById('displayed-count');
+        
+        filterRadios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                const filterValue = this.value;
+                let visibleCount = 0;
+                
+                tableRows.forEach(row => {
+                    const rowStatus = row.getAttribute('data-status');
+                    
+                    if (filterValue === 'all' || rowStatus === filterValue) {
+                        row.style.display = '';
+                        visibleCount++;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+                
+                // Update displayed count
+                displayedCount.textContent = visibleCount;
+            });
+        });
     });
     </script>
 
@@ -171,6 +220,26 @@
     .info-text {
         display: block;
         text-align: center;
+    }
+    
+    /* Filter styles */
+    .filter-controls label {
+        padding: 0.3rem 0.6rem;
+        border-radius: 4px;
+        transition: background-color 0.2s;
+    }
+    
+    .filter-controls label:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .filter-controls input[type="radio"]:checked + span {
+        color: var(--primary-color);
+        font-weight: bold;
+    }
+    
+    .filter-stats {
+        color: var(--gray-color);
     }
     </style>
 {% endblock %}
