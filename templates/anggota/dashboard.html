@@ -48,8 +48,6 @@
                 <h3 style="color: var(--primary-color); margin-bottom: 0.5rem;">Sesi Presensi Aktif</h3>
                 <p><strong>{{ active_session.judul }}</strong></p>
                 <p>Tanggal: {{ active_session.tanggal }}</p>
-                <p>Jam Mulai: {{ active_session.jam_mulai }}</p>
-                <p>Jam Selesai: {{ active_session.jam_selesai }}</p>
                 <p style="font-size: 0.9rem; margin-top: 0.5rem;">Dibuat pada: {{ active_session.created_at }}</p>
                 
                 <!-- Add Kas Status for Active Session -->
@@ -69,19 +67,10 @@
                 {% if not sudah_masuk %}
                     <form method="POST" action="{{ url_for('presensi') }}">
                         <input type="hidden" name="status" value="masuk">
-                        <button type="submit" class="btn btn-primary">Presensi Masuk</button>
+                        <button type="submit" class="btn btn-primary">Presensi Hadir</button>
                     </form>
                 {% else %}
-                    <button class="btn" style="background-color: var(--gray-color); cursor: not-allowed;" disabled>Sudah Presensi Masuk</button>
-                {% endif %}
-                
-                {% if sudah_masuk and not sudah_pulang %}
-                    <form method="POST" action="{{ url_for('presensi') }}">
-                        <input type="hidden" name="status" value="pulang">
-                        <button type="submit" class="btn btn-secondary">Presensi Pulang</button>
-                    </form>
-                {% elif sudah_pulang %}
-                    <button class="btn" style="background-color: var(--gray-color); cursor: not-allowed;" disabled>Sudah Presensi Pulang</button>
+                    <button class="btn" style="background-color: var(--gray-color); cursor: not-allowed;" disabled>Sudah Presensi</button>
                 {% endif %}
             </div>
         {% else %}
@@ -91,7 +80,7 @@
             </div>
         {% endif %}
         
-        <!-- Bagian Riwayat Presensi - Ubah kolom Kas -->
+        <!-- Bagian Riwayat Presensi - Ubah tampilan status -->
         <section class="riwayat-presensi">
             <h3 style="color: var(--primary-color); margin-bottom: 1rem;">Riwayat Presensi Terakhir</h3>
             <div class="table-container">
@@ -114,7 +103,7 @@
                                     {% if presensi.status == 'tidak hadir' %}
                                         <span style="color: var(--danger-color);">Tidak Hadir</span>
                                     {% else %}
-                                        {{ presensi.status }}
+                                        Hadir
                                     {% endif %}
                                 </td>
                                 <td>{{ presensi.waktu_presensi.strftime('%H:%M:%S') if presensi.waktu_presensi else '-' }}</td>

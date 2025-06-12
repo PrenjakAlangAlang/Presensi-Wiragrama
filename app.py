@@ -316,17 +316,16 @@ def create_sesi():
     if request.method == 'POST':
         judul = request.form.get('judul')
         tanggal = request.form.get('tanggal')
-        jam_mulai = request.form.get('jam_mulai')
-        jam_selesai = request.form.get('jam_selesai')
+        # Hapus jam_mulai dan jam_selesai
         
         conn = get_connection()
         cursor = conn.cursor()
         
         try:
             cursor.execute("""
-                INSERT INTO presensi_sesi (judul, tanggal, jam_mulai, jam_selesai, created_by)
-                VALUES (%s, %s, %s, %s, %s)
-            """, (judul, tanggal, jam_mulai, jam_selesai, current_user.id))
+                INSERT INTO presensi_sesi (judul, tanggal, created_by)
+                VALUES (%s, %s, %s)
+            """, (judul, tanggal, current_user.id))
             
             conn.commit()
             flash('Sesi presensi berhasil dibuat', 'success')
@@ -472,7 +471,7 @@ def anggota_dashboard():
     
     # Get active session info for today
     cursor.execute("""
-        SELECT id, judul, tanggal, created_at 
+        SELECT id, judul, tanggal, created_at
         FROM presensi_sesi 
         WHERE status = 'active' AND tanggal = CURDATE()
         ORDER BY created_at DESC LIMIT 1
@@ -481,12 +480,11 @@ def anggota_dashboard():
     
     # Initialize variables
     sudah_masuk = False
-    sudah_pulang = False
     active_session_kas_status = None
     
     # If there's an active session, check if user already attended
     if active_session:
-        # Check masuk status
+        # Check attendance status
         cursor.execute("""
             SELECT COUNT(*) as total FROM presensi 
             WHERE user_id = %s 
@@ -494,15 +492,6 @@ def anggota_dashboard():
             AND status = 'masuk'
         """, (current_user.id, active_session['id']))
         sudah_masuk = cursor.fetchone()['total'] > 0
-        
-        # Check pulang status
-        cursor.execute("""
-            SELECT COUNT(*) as total FROM presensi 
-            WHERE user_id = %s 
-            AND sesi_id = %s 
-            AND status = 'pulang'
-        """, (current_user.id, active_session['id']))
-        sudah_pulang = cursor.fetchone()['total'] > 0
         
         # Get kas status for active session
         cursor.execute("""
@@ -557,7 +546,6 @@ def anggota_dashboard():
     return render_template('anggota/dashboard.html', 
                          active_session=active_session,
                          sudah_masuk=sudah_masuk,
-                         sudah_pulang=sudah_pulang,
                          active_session_kas_status=active_session_kas_status,
                          riwayat_presensi=riwayat_presensi,
                          total_kas_paid=total_kas_paid,
@@ -685,7 +673,7 @@ def presensi():
     
     status = request.form.get('status')
     
-    if status not in ['masuk', 'pulang']:
+    if status != 'masuk':
         flash('Status tidak valid', 'danger')
         return redirect(url_for('anggota_dashboard'))
     
@@ -695,7 +683,7 @@ def presensi():
     try:
         # Check for active session
         cursor.execute("""
-            SELECT id, jam_mulai, jam_selesai FROM presensi_sesi 
+            SELECT id FROM presensi_sesi 
             WHERE status = 'active' AND tanggal = CURDATE()
             ORDER BY created_at DESC LIMIT 1
         """)
@@ -707,33 +695,16 @@ def presensi():
             
         sesi_id = active_session['id']
         
-        # Check if the current time is within the allowed range for "masuk" status
-        from datetime import datetime
-        current_time = datetime.now().time()
+        # Hapus validasi waktu presensi (jam_mulai dan jam_selesai)
         
-        if status == 'masuk' and (current_time < active_session['jam_mulai'] or current_time > active_session['jam_selesai']):
-            flash(f'Presensi masuk hanya diperbolehkan antara {active_session["jam_mulai"]} dan {active_session["jam_selesai"]}', 'danger')
-            return redirect(url_for('anggota_dashboard'))
-            
-        # Check if user has already checked in before allowing checkout
-        if status == 'pulang':
-            cursor.execute("""
-                SELECT COUNT(*) as total FROM presensi 
-                WHERE user_id = %s AND sesi_id = %s AND status = 'masuk'
-            """, (current_user.id, sesi_id))
-            
-            if cursor.fetchone()['total'] == 0:
-                flash('Anda belum melakukan presensi masuk', 'danger')
-                return redirect(url_for('anggota_dashboard'))
-            
-        # Check if already done presensi with same status for this session
+        # Check if already done presensi for this session
         cursor.execute("""
             SELECT COUNT(*) as total FROM presensi 
-            WHERE user_id = %s AND sesi_id = %s AND status = %s
-        """, (current_user.id, sesi_id, status))
+            WHERE user_id = %s AND sesi_id = %s
+        """, (current_user.id, sesi_id))
         
         if cursor.fetchone()['total'] > 0:
-            flash(f'Anda sudah presensi {status} untuk sesi ini', 'warning')
+            flash('Anda sudah presensi untuk sesi ini', 'warning')
             return redirect(url_for('anggota_dashboard'))
         
         # Add new presensi with session ID
@@ -743,7 +714,7 @@ def presensi():
         """, (current_user.id, status, sesi_id))
         conn.commit()
         
-        flash(f'Presensi {status} berhasil dicatat', 'success')
+        flash('Presensi berhasil dicatat', 'success')
     except Exception as e:
         conn.rollback()
         flash(f'Error: {str(e)}', 'danger')
