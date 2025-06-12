@@ -72,11 +72,10 @@
                         <tr data-status="{{ presensi.status }}">
                             <td>{{ presensi.nama_lengkap }}</td>
                             <td>
-                                {% if presensi.status == 'tidak hadir' %}
-                                    <span style="color: var(--danger-color); font-weight: bold;">Tidak Hadir</span>
-                                {% else %}
-                                    {{ presensi.status }}
-                                {% endif %}
+                                <select class="status-dropdown" data-presensi-id="{{ presensi.id }}">
+                                    <option value="masuk" {% if presensi.status == 'masuk' %}selected{% endif %}>Hadir</option>
+                                    <option value="tidak hadir" {% if presensi.status == 'tidak hadir' %}selected{% endif %}>Tidak Hadir</option>
+                                </select>
                             </td>
                             <td>{{ presensi.waktu_presensi }}</td>
                             <td>
@@ -94,9 +93,7 @@
                                         </label>
                                     </div>
                                 {% else %}
-                                    <span class="info-text" style="color: var(--gray-color); font-style: italic; font-size: 0.9rem;">
-                                        Kas hanya pada presensi masuk atau tidak hadir
-                                    </span>
+                                    <span class="info-text">-</span>
                                 {% endif %}
                             </td>
                         </tr>
@@ -112,6 +109,7 @@
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Existing kas checkbox code
         const kasCheckboxes = document.querySelectorAll('.kas-checkbox');
         
         kasCheckboxes.forEach(checkbox => {
@@ -150,7 +148,7 @@
                         } else {
                             label.innerHTML = '<span class="unpaid">Belum Bayar</span>';
                         }
-                        alert('Error: ' + data.message);
+                        alert('Terjadi kesalahan: ' + data.message);
                     }
                 })
                 .catch(error => {
@@ -167,35 +165,135 @@
             });
         });
         
+        // Status dropdown change handler
+        const statusDropdowns = document.querySelectorAll('.status-dropdown');
+        
+        statusDropdowns.forEach(dropdown => {
+            dropdown.addEventListener('change', function() {
+                const presensiId = this.dataset.presensiId;
+                const newStatus = this.value;
+                const row = this.closest('tr');
+                
+                // Update row data-status for filtering
+                row.dataset.status = newStatus;
+                
+                // Send update to server
+                fetch('/api/presensi/update-status', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        presensi_id: presensiId,
+                        new_status: newStatus
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Success notification could be added here
+                    } else {
+                        // Revert dropdown on error
+                        this.value = row.dataset.status === 'masuk' ? 'masuk' : 'tidak hadir';
+                        row.dataset.status = this.value;
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    // Revert dropdown on error
+                    this.value = row.dataset.status === 'masuk' ? 'masuk' : 'tidak hadir';
+                    row.dataset.status = this.value;
+                    alert('Terjadi kesalahan saat mengubah status presensi');
+                });
+            });
+        });
+        
         // Add filtering functionality
         const filterRadios = document.querySelectorAll('input[name="status-filter"]');
         const tableRows = document.querySelectorAll('table tbody tr');
         const displayedCount = document.getElementById('displayed-count');
         
-        filterRadios.forEach(radio => {
-            radio.addEventListener('change', function() {
-                const filterValue = this.value;
-                let visibleCount = 0;
-                
-                tableRows.forEach(row => {
-                    const rowStatus = row.getAttribute('data-status');
+        if (filterRadios.length > 0 && tableRows.length > 0 && displayedCount) {
+            filterRadios.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    const filterValue = this.value;
+                    let count = 0;
                     
-                    if (filterValue === 'all' || rowStatus === filterValue) {
-                        row.style.display = '';
-                        visibleCount++;
-                    } else {
-                        row.style.display = 'none';
-                    }
+                    tableRows.forEach(row => {
+                        if (filterValue === 'all' || row.dataset.status === filterValue) {
+                            row.style.display = '';
+                            count++;
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    });
+                    
+                    displayedCount.textContent = count;
                 });
-                
-                // Update displayed count
-                displayedCount.textContent = visibleCount;
             });
-        });
+        }
     });
     </script>
 
     <style>
+    /* Existing styles remain the same */
+    .status-dropdown {
+        width: 100%;
+        padding: 0.5rem;
+        background-color: var(--input-background);
+        border: 1px solid var(--primary-color);
+        border-radius: 4px;
+        font-size: 0.9rem;
+        color: var(--text-color);
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+
+    .status-dropdown:focus {
+        outline: none;
+        border-color: var(--secondary-color);
+        box-shadow: 0 0 0 2px rgba(46, 204, 113, 0.2);
+    }
+
+    .status-dropdown option {
+        background-color: var(--background-color);
+        color: var(--text-color);
+        padding: 0.5rem;
+    }
+
+    /* Responsive styles for mobile */
+    @media (max-width: 698px) {
+        .table-container {
+            overflow-x: auto;
+        }
+        
+        table {
+            min-width: 600px; /* Ensure table doesn't shrink too much */
+        }
+        
+        .status-dropdown {
+            width: 100%;
+            min-width: 120px; /* Ensure dropdown is wide enough */
+            padding: 8px 10px; /* Larger padding for touch targets */
+            font-size: 14px; /* Slightly larger font */
+            background-color: rgba(46, 204, 113, 0.1); /* More visible background */
+            border: 1px solid var(--primary-color);
+        }
+        
+        /* Improved table cell spacing for mobile */
+        td, th {
+            padding: 10px 8px;
+        }
+        
+        /* Make checkboxes easier to tap */
+        .kas-checkbox {
+            width: 18px;
+            height: 18px;
+        }
+    }
+
+    /* Other existing styles remain the same */
     .kas-toggle {
         display: flex;
         align-items: center;
@@ -217,6 +315,8 @@
     .info-text {
         display: block;
         text-align: center;
+        color: var(--gray-color);
+        font-style: italic;
     }
     
     /* Filter styles */

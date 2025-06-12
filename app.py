@@ -756,6 +756,46 @@ def update_kas():
         cursor.close()
         conn.close()
 
+@app.route('/api/presensi/update-status', methods=['POST'])
+@login_required
+def update_presensi_status():
+    if current_user.role != 'admin':
+        return jsonify({"status": "error", "message": "Unauthorized"}), 403
+    
+    data = request.get_json()
+    presensi_id = data.get('presensi_id')
+    new_status = data.get('new_status')
+    
+    if not presensi_id:
+        return jsonify({"status": "error", "message": "presensi_id is required"}), 400
+        
+    if new_status not in ['masuk', 'tidak hadir']:
+        return jsonify({"status": "error", "message": "Status tidak valid"}), 400
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # Update presensi status
+        cursor.execute("""
+            UPDATE presensi 
+            SET status = %s
+            WHERE id = %s
+        """, (new_status, presensi_id))
+        
+        conn.commit()
+        
+        return jsonify({
+            "status": "success", 
+            "message": "Status presensi berhasil diubah"
+        })
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
 @app.route('/admin/kas-report')
 @login_required
 def kas_report():
