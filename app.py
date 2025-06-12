@@ -422,6 +422,44 @@ def close_sesi(sesi_id):
         
     return redirect(url_for('manage_sesi'))
 
+@app.route('/admin/sesi/<int:sesi_id>/delete', methods=['POST'])
+@login_required
+def delete_sesi(sesi_id):
+    if current_user.role != 'admin':
+        flash('Anda tidak memiliki akses', 'danger')
+        return redirect(url_for('home'))
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # First get the session info for confirmation
+        cursor.execute("SELECT judul FROM presensi_sesi WHERE id = %s", (sesi_id,))
+        sesi_info = cursor.fetchone()
+        
+        if not sesi_info:
+            flash('Sesi tidak ditemukan', 'danger')
+            return redirect(url_for('manage_sesi'))
+        
+        # Delete all related attendance records first
+        cursor.execute("DELETE FROM presensi WHERE sesi_id = %s", (sesi_id,))
+        
+        # Then delete the session
+        cursor.execute("DELETE FROM presensi_sesi WHERE id = %s", (sesi_id,))
+        
+        conn.commit()
+        flash(f'Sesi presensi berhasil dihapus beserta seluruh data terkait', 'success')
+        
+    except Exception as e:
+        conn.rollback()
+        flash(f'Error: {str(e)}', 'danger')
+        
+    finally:
+        cursor.close()
+        conn.close()
+        
+    return redirect(url_for('manage_sesi'))
+
 # Anggota Routes
 @app.route('/anggota/dashboard')
 @login_required

@@ -58,6 +58,10 @@
                                                 onclick="return confirm('Yakin ingin menutup sesi ini?');">Tutup Sesi</button>
                                     </form>
                                 {% endif %}
+                                <form method="POST" action="{{ url_for('delete_sesi', sesi_id=sesi.id) }}" style="display: inline;">
+                                    <button type="submit" class="btn" style="background-color: var(--danger-color); padding: 0.3rem 0.5rem; font-size: 0.9rem;" 
+                                            onclick="return confirm('PERHATIAN: Semua data presensi dan kas untuk sesi ini akan dihapus. Lanjutkan?');">Hapus</button>
+                                </form>
                             </td>
                         </tr>
                     {% endfor %}
