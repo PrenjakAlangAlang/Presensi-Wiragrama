@@ -119,9 +119,13 @@ def admin_dashboard():
     cursor.execute("SELECT COUNT(*) as total FROM presensi WHERE DATE(waktu_presensi) = CURDATE()")
     total_presensi = cursor.fetchone()['total']
     
-    # Get total kas collected - from "masuk" presensi
-    cursor.execute("SELECT COUNT(*) as total FROM presensi WHERE kas_paid = TRUE AND status = 'masuk'")
-    total_kas = cursor.fetchone()['total'] * 5000  # Rp 5000 per entry
+    # Updated query to match kas_report - count both "masuk" and "tidak hadir" status
+    cursor.execute("""
+        SELECT COUNT(*) as total 
+        FROM presensi 
+        WHERE kas_paid = TRUE AND (status = 'masuk' OR status = 'tidak hadir')
+    """)
+    total_kas = cursor.fetchone()['total'] * 5000 + 2434500 # Rp 5000 per entry
     
     cursor.execute("""
         SELECT u.nama_lengkap, p.waktu_presensi, p.status 
@@ -758,7 +762,7 @@ def kas_report():
         FROM presensi 
         WHERE kas_paid = TRUE AND (status = 'masuk' OR status = 'tidak hadir')
     """)
-    total_kas_collected = cursor.fetchone()['total'] * 5000  # Rp 5000 per entry
+    total_kas_collected = cursor.fetchone()['total'] * 5000 + 2434500 # Rp 5000 per entry
     
     # Get kas by month - only from "masuk" and "tidak hadir" presensi
     cursor.execute("""
