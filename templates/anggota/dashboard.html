@@ -64,7 +64,7 @@
             </div>
             
             <div class="presensi-actions" style="display: flex; justify-content: center; gap: 1rem; margin-bottom: 2rem;">
-                {% if not sudah_masuk %}
+                {% if not sudah_presensi %}
                     <form method="POST" action="{{ url_for('presensi') }}">
                         <input type="hidden" name="status" value="masuk">
                         <button type="submit" class="btn btn-primary">Presensi Hadir</button>

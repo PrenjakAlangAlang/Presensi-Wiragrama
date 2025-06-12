@@ -479,23 +479,22 @@ def anggota_dashboard():
     active_session = cursor.fetchone()
     
     # Initialize variables
-    sudah_masuk = False
+    sudah_presensi = False
     active_session_kas_status = None
     
     # If there's an active session, check if user already attended
     if active_session:
-        # Check attendance status
+        # Check attendance status (any status)
         cursor.execute("""
             SELECT COUNT(*) as total FROM presensi 
             WHERE user_id = %s 
-            AND sesi_id = %s 
-            AND status = 'masuk'
+            AND sesi_id = %s
         """, (current_user.id, active_session['id']))
-        sudah_masuk = cursor.fetchone()['total'] > 0
+        sudah_presensi = cursor.fetchone()['total'] > 0
         
         # Get kas status for active session
         cursor.execute("""
-            SELECT kas_paid FROM presensi 
+            SELECT kas_paid, status FROM presensi 
             WHERE user_id = %s AND sesi_id = %s
             LIMIT 1
         """, (current_user.id, active_session['id']))
@@ -545,7 +544,7 @@ def anggota_dashboard():
     
     return render_template('anggota/dashboard.html', 
                          active_session=active_session,
-                         sudah_masuk=sudah_masuk,
+                         sudah_presensi=sudah_presensi,  # Rename from sudah_masuk to sudah_presensi
                          active_session_kas_status=active_session_kas_status,
                          riwayat_presensi=riwayat_presensi,
                          total_kas_paid=total_kas_paid,
@@ -695,9 +694,7 @@ def presensi():
             
         sesi_id = active_session['id']
         
-        # Hapus validasi waktu presensi (jam_mulai dan jam_selesai)
-        
-        # Check if already done presensi for this session
+        # Check if already done presensi for this session (any status)
         cursor.execute("""
             SELECT COUNT(*) as total FROM presensi 
             WHERE user_id = %s AND sesi_id = %s
