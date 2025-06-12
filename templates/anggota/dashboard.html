@@ -33,6 +33,9 @@
                         {% for session in kas_unpaid_sessions %}
                             <li style="padding: 0.5rem; margin-bottom: 0.5rem; background-color: rgba(231, 76, 60, 0.1); border-radius: 4px;">
                                 {{ session.judul }} ({{ session.tanggal }})
+                                {% if session.status == 'tidak hadir' %}
+                                    <span style="color: var(--danger-color); font-style: italic;">(Tidak Hadir)</span>
+                                {% endif %}
                             </li>
                         {% endfor %}
                     </ul>
@@ -45,6 +48,8 @@
                 <h3 style="color: var(--primary-color); margin-bottom: 0.5rem;">Sesi Presensi Aktif</h3>
                 <p><strong>{{ active_session.judul }}</strong></p>
                 <p>Tanggal: {{ active_session.tanggal }}</p>
+                <p>Jam Mulai: {{ active_session.jam_mulai }}</p>
+                <p>Jam Selesai: {{ active_session.jam_selesai }}</p>
                 <p style="font-size: 0.9rem; margin-top: 0.5rem;">Dibuat pada: {{ active_session.created_at }}</p>
                 
                 <!-- Add Kas Status for Active Session -->
@@ -93,21 +98,35 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Waktu</th>
-                            <th>Status</th>
                             <th>Sesi</th>
+                            <th>Tanggal</th>
+                            <th>Status</th>
+                            <th>Waktu</th>
                             <th>Kas</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for presensi in riwayat_presensi %}
                             <tr>
+                                <td>{{ presensi.judul }}</td>
+                                <td>{{ presensi.tanggal }}</td>
+                                <td>
+                                    {% if presensi.status == 'tidak hadir' %}
+                                        <span style="color: var(--danger-color);">Tidak Hadir</span>
+                                    {% else %}
+                                        {{ presensi.status }}
+                                    {% endif %}
+                                </td>
                                 <td>{{ presensi.waktu_presensi }}</td>
-                                <td>{{ presensi.status }}</td>
-                                <td>{{ presensi.sesi_judul or '-' }}</td>
                                 <td>
                                     {% if presensi.status == 'pulang' %}
                                         <span style="color: var(--gray-color);">-</span>
+                                    {% elif presensi.status == 'tidak hadir' %}
+                                        {% if presensi.kas_paid %}
+                                            <span style="color: var(--primary-color);">Sudah Bayar</span>
+                                        {% else %}
+                                            <span style="color: var(--danger-color);">Belum Bayar (Tidak Hadir)</span>
+                                        {% endif %}
                                     {% elif presensi.kas_paid %}
                                         <span style="color: var(--primary-color);">Sudah Bayar</span>
                                     {% else %}

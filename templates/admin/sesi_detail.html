@@ -51,10 +51,16 @@
                     {% for presensi in presensi_list %}
                         <tr>
                             <td>{{ presensi.nama_lengkap }}</td>
-                            <td>{{ presensi.status }}</td>
+                            <td>
+                                {% if presensi.status == 'tidak hadir' %}
+                                    <span style="color: var(--danger-color); font-weight: bold;">Tidak Hadir</span>
+                                {% else %}
+                                    {{ presensi.status }}
+                                {% endif %}
+                            </td>
                             <td>{{ presensi.waktu_presensi }}</td>
                             <td>
-                                {% if presensi.status == 'masuk' %}
+                                {% if presensi.status == 'masuk' or presensi.status == 'tidak hadir' %}
                                     <div class="kas-toggle">
                                         <input type="checkbox" id="kas-{{ presensi.id }}" class="kas-checkbox" 
                                             data-presensi-id="{{ presensi.id }}" 
@@ -69,7 +75,7 @@
                                     </div>
                                 {% else %}
                                     <span class="info-text" style="color: var(--gray-color); font-style: italic; font-size: 0.9rem;">
-                                        Kas hanya pada presensi masuk
+                                        Kas hanya pada presensi masuk atau tidak hadir
                                     </span>
                                 {% endif %}
                             </td>

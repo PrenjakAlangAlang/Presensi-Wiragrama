@@ -312,15 +312,17 @@ def create_sesi():
     if request.method == 'POST':
         judul = request.form.get('judul')
         tanggal = request.form.get('tanggal')
+        jam_mulai = request.form.get('jam_mulai')
+        jam_selesai = request.form.get('jam_selesai')
         
         conn = get_connection()
         cursor = conn.cursor()
         
         try:
             cursor.execute("""
-                INSERT INTO presensi_sesi (judul, tanggal, created_by)
-                VALUES (%s, %s, %s)
-            """, (judul, tanggal, current_user.id))
+                INSERT INTO presensi_sesi (judul, tanggal, jam_mulai, jam_selesai, created_by)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (judul, tanggal, jam_mulai, jam_selesai, current_user.id))
             
             conn.commit()
             flash('Sesi presensi berhasil dibuat', 'success')
@@ -377,12 +379,36 @@ def close_sesi(sesi_id):
         return redirect(url_for('home'))
     
     conn = get_connection()
-    cursor = conn.cursor()
+    cursor = conn.cursor(dictionary=True)
     
     try:
+        # Get all anggota users
+        cursor.execute("SELECT id FROM users WHERE role = 'anggota'")
+        all_users = cursor.fetchall()
+        
+        # For each user, check if they have attended
+        for user in all_users:
+            user_id = user['id']
+            
+            # Check if user has already checked in for this session
+            cursor.execute("""
+                SELECT COUNT(*) as attended FROM presensi
+                WHERE user_id = %s AND sesi_id = %s AND status = 'masuk'
+            """, (user_id, sesi_id))
+            
+            # If user hasn't checked in, mark them as absent
+            if cursor.fetchone()['attended'] == 0:
+                # Insert absence record with "tidak hadir" status
+                cursor.execute("""
+                    INSERT INTO presensi (user_id, status, sesi_id, kas_paid, is_absent)
+                    VALUES (%s, 'tidak hadir', %s, FALSE, TRUE)
+                """, (user_id, sesi_id))
+        
+        # Close the session
         cursor.execute("UPDATE presensi_sesi SET status = 'closed' WHERE id = %s", (sesi_id,))
         conn.commit()
-        flash('Sesi presensi berhasil ditutup', 'success')
+        
+        flash('Sesi presensi berhasil ditutup dan ketidakhadiran telah dicatat', 'success')
     except Exception as e:
         conn.rollback()
         flash(f'Error: {str(e)}', 'danger')
@@ -457,27 +483,27 @@ def anggota_dashboard():
     """, (current_user.id,))
     riwayat_presensi = cursor.fetchall()
     
-    # Get total kas paid - only from "masuk" presensi
+    # Get total kas paid - from both "masuk" and "tidak hadir" presensi
     cursor.execute("""
         SELECT COUNT(*) as total FROM presensi
-        WHERE user_id = %s AND kas_paid = TRUE AND status = 'masuk'
+        WHERE user_id = %s AND kas_paid = TRUE AND (status = 'masuk' OR status = 'tidak hadir')
     """, (current_user.id,))
     total_kas_paid = cursor.fetchone()['total']
 
-    # Get total kas unpaid - only from "masuk" presensi
+    # Get total kas unpaid - from both "masuk" and "tidak hadir" presensi
     cursor.execute("""
         SELECT COUNT(*) as total FROM presensi
-        WHERE user_id = %s AND kas_paid = FALSE AND status = 'masuk'
+        WHERE user_id = %s AND kas_paid = FALSE AND (status = 'masuk' OR status = 'tidak hadir')
     """, (current_user.id,))
     total_kas_unpaid = cursor.fetchone()['total']
 
-    # Get sessions with unpaid kas - only from "masuk" presensi
+    # Get sessions with unpaid kas - include status to distinguish absences
     cursor.execute("""
-        SELECT s.id, s.judul, s.tanggal
+        SELECT s.id, s.judul, s.tanggal, p.status
         FROM presensi p
         JOIN presensi_sesi s ON p.sesi_id = s.id
-        WHERE p.user_id = %s AND p.kas_paid = FALSE AND p.status = 'masuk'
-        GROUP BY s.id
+        WHERE p.user_id = %s AND p.kas_paid = FALSE AND (p.status = 'masuk' OR p.status = 'tidak hadir')
+        GROUP BY s.id, p.status
         ORDER BY s.tanggal DESC
     """, (current_user.id,))
     kas_unpaid_sessions = cursor.fetchall()
@@ -626,7 +652,7 @@ def presensi():
     try:
         # Check for active session
         cursor.execute("""
-            SELECT id FROM presensi_sesi 
+            SELECT id, jam_mulai, jam_selesai FROM presensi_sesi 
             WHERE status = 'active' AND tanggal = CURDATE()
             ORDER BY created_at DESC LIMIT 1
         """)
@@ -638,6 +664,25 @@ def presensi():
             
         sesi_id = active_session['id']
         
+        # Check if the current time is within the allowed range for "masuk" status
+        from datetime import datetime
+        current_time = datetime.now().time()
+        
+        if status == 'masuk' and (current_time < active_session['jam_mulai'] or current_time > active_session['jam_selesai']):
+            flash(f'Presensi masuk hanya diperbolehkan antara {active_session["jam_mulai"]} dan {active_session["jam_selesai"]}', 'danger')
+            return redirect(url_for('anggota_dashboard'))
+            
+        # Check if user has already checked in before allowing checkout
+        if status == 'pulang':
+            cursor.execute("""
+                SELECT COUNT(*) as total FROM presensi 
+                WHERE user_id = %s AND sesi_id = %s AND status = 'masuk'
+            """, (current_user.id, sesi_id))
+            
+            if cursor.fetchone()['total'] == 0:
+                flash('Anda belum melakukan presensi masuk', 'danger')
+                return redirect(url_for('anggota_dashboard'))
+            
         # Check if already done presensi with same status for this session
         cursor.execute("""
             SELECT COUNT(*) as total FROM presensi 
@@ -707,34 +752,34 @@ def kas_report():
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     
-    # Get total kas collected - only from "masuk" presensi
+    # Get total kas collected - only from "masuk" and "tidak hadir" presensi
     cursor.execute("""
         SELECT COUNT(*) as total 
         FROM presensi 
-        WHERE kas_paid = TRUE AND status = 'masuk'
+        WHERE kas_paid = TRUE AND (status = 'masuk' OR status = 'tidak hadir')
     """)
     total_kas_collected = cursor.fetchone()['total'] * 5000  # Rp 5000 per entry
     
-    # Get kas by month - only from "masuk" presensi
+    # Get kas by month - only from "masuk" and "tidak hadir" presensi
     cursor.execute("""
         SELECT 
             DATE_FORMAT(waktu_presensi, '%Y-%m') as month,
             COUNT(*) as count
         FROM presensi
-        WHERE kas_paid = TRUE AND status = 'masuk'
+        WHERE kas_paid = TRUE AND (status = 'masuk' OR status = 'tidak hadir')
         GROUP BY DATE_FORMAT(waktu_presensi, '%Y-%m')
         ORDER BY month DESC
     """)
     monthly_kas = cursor.fetchall()
     
-    # Get users with most unpaid kas - only from "masuk" presensi
+    # Get users with most unpaid kas - from "masuk" and "tidak hadir" presensi
     cursor.execute("""
         SELECT 
             u.nama_lengkap,
             COUNT(*) as unpaid_count
         FROM presensi p
         JOIN users u ON p.user_id = u.id
-        WHERE p.kas_paid = FALSE AND p.status = 'masuk'
+        WHERE p.kas_paid = FALSE AND (p.status = 'masuk' OR p.status = 'tidak hadir')
         GROUP BY p.user_id
         ORDER BY unpaid_count DESC
         LIMIT 5

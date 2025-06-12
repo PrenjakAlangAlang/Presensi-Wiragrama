@@ -25,6 +25,14 @@
                 <label for="tanggal">Tanggal</label>
                 <input type="date" id="tanggal" name="tanggal" required>
             </div>
+            <div class="form-group">
+                <label for="jam_mulai">Jam Mulai</label>
+                <input type="time" id="jam_mulai" name="jam_mulai" required value="08:00">
+            </div>
+            <div class="form-group">
+                <label for="jam_selesai">Jam Selesai</label>
+                <input type="time" id="jam_selesai" name="jam_selesai" required value="17:00">
+            </div>
             <div style="text-align: center;">
                 <button type="submit" class="btn btn-primary" style="width: 100%;">Buat Sesi</button>
                 <a href="{{ url_for('manage_sesi') }}" class="btn btn-secondary" style="width: 100%; margin-top: 10px;">Batal</a>
