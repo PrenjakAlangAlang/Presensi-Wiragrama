@@ -117,7 +117,7 @@
                                         {{ presensi.status }}
                                     {% endif %}
                                 </td>
-                                <td>{{ presensi.waktu_presensi }}</td>
+                                <td>{{ presensi.waktu_presensi.strftime('%H:%M:%S') if presensi.waktu_presensi else '-' }}</td>
                                 <td>
                                     {% if presensi.status == 'pulang' %}
                                         <span style="color: var(--gray-color);">-</span>

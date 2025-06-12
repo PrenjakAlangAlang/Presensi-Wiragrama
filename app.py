@@ -516,7 +516,8 @@ def anggota_dashboard():
     
     # Get attendance history with session titles and kas status
     cursor.execute("""
-        SELECT p.waktu_presensi, p.status, p.kas_paid, s.judul as sesi_judul
+        SELECT p.id, p.waktu_presensi, p.status, p.kas_paid, 
+               s.judul, s.tanggal
         FROM presensi p
         LEFT JOIN presensi_sesi s ON p.sesi_id = s.id
         WHERE p.user_id = %s 
